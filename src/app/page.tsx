@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   return (
@@ -11,9 +12,11 @@ export default function Home() {
           Master radiology through comprehensive practice questions and detailed explanations
         </p>
         <div className="flex justify-center gap-4">
-          <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Get Started
-          </button>
+          <Link href="/auth">
+            <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              Get Started
+            </button>
+          </Link>
           <button className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             Learn More
           </button>
