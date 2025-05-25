@@ -167,6 +167,13 @@ export default function DashboardPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="relative flex-1 flex justify-center">
+            {user && (
+              <span className="text-xl font-semibold text-gray-700">
+                Hi, {user.user_metadata?.firstName || user.user_metadata?.first_name || user.email?.split('@')[0] || 'there'}
+              </span>
+            )}
+          </div>
           <div className="relative" ref={settingsRef}>
             <button
               onClick={() => setSettingsOpen((open) => !open)}
