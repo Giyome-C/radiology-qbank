@@ -108,108 +108,138 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <div className="relative">
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r flex flex-col py-8 px-4 min-h-screen">
+        <div className="mb-8">
+          <span className="text-xl font-bold">Admin Panel</span>
+        </div>
+        <nav className="flex-1 space-y-2">
+          <Link href="/admin/dashboard">
+            <span className="block px-3 py-2 rounded-lg hover:bg-gray-100 cursor-pointer font-medium">Dashboard</span>
+          </Link>
+          <Link href="/admin/qbank">
+            <span className="block px-3 py-2 rounded-lg hover:bg-gray-100 cursor-pointer font-medium">Qbank</span>
+          </Link>
+          <Link href="/dashboard">
+            <span className="block px-3 py-2 rounded-lg hover:bg-gray-100 cursor-pointer font-medium">User dashboard</span>
+          </Link>
           <button
             onClick={() => setSettingsOpen((open) => !open)}
-            className="flex items-center px-3 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none text-lg font-medium"
-            aria-label="Settings"
+            className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 cursor-pointer font-medium"
           >
             Settings
           </button>
-          {settingsOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-              <Link href="/dashboard">
-                <span className="block px-4 py-2 hover:bg-gray-100 cursor-pointer">User Dashboard</span>
-              </Link>
-              <Link href="/admin/dashboard">
-                <span className="block px-4 py-2 hover:bg-gray-100 cursor-pointer">Admin Dashboard</span>
-              </Link>
-              <button
-                onClick={() => {
-                  router.push('/auth')
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
-              >
-                Sign Out
-              </button>
-            </div>
+          <button
+            onClick={() => router.push('/auth')}
+            className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 cursor-pointer font-medium text-red-600"
+          >
+            Sign out
+          </button>
+        </nav>
+      </aside>
+      {/* Main content */}
+      <main className="flex-1 bg-gray-50 px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <div className="relative">
+            <button
+              onClick={() => setSettingsOpen((open) => !open)}
+              className="flex items-center px-3 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none text-lg font-medium"
+              aria-label="Settings"
+            >
+              Settings
+            </button>
+            {settingsOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                <Link href="/dashboard">
+                  <span className="block px-4 py-2 hover:bg-gray-100 cursor-pointer">User Dashboard</span>
+                </Link>
+                <Link href="/admin/dashboard">
+                  <span className="block px-4 py-2 hover:bg-gray-100 cursor-pointer">Admin Dashboard</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    router.push('/auth')
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Top stats row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+            <span className="text-lg font-semibold">Users:</span>
+            <span className="text-2xl font-bold">{users.length}</span>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+            <span className="text-lg font-semibold">Total Revenue:</span>
+            <span className="text-2xl font-bold">${totalRevenue.toLocaleString()}</span>
+          </div>
+        </div>
+        {/* User list */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="border rounded px-3 py-2 w-full md:w-64"
+            />
+            {actionError && <div className="text-red-600 text-sm mt-2 md:mt-0">{actionError}</div>}
+          </div>
+          {loading ? (
+            <div className="text-center py-8">Loading users...</div>
+          ) : (
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr>
+                  <th className="py-2 px-4">First Name</th>
+                  <th className="py-2 px-4">Last Name</th>
+                  <th className="py-2 px-4">Email</th>
+                  <th className="py-2 px-4">Job Title</th>
+                  <th className="py-2 px-4">Product</th>
+                  <th className="py-2 px-4">Product Price Paid</th>
+                  <th className="py-2 px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map(u => (
+                  <tr key={u.id} className="border-t">
+                    <td className="py-2 px-4">{u.first_name || '-'}</td>
+                    <td className="py-2 px-4">{u.last_name || '-'}</td>
+                    <td className="py-2 px-4">{u.email || '-'}</td>
+                    <td className="py-2 px-4">{u.job_title || '-'}</td>
+                    <td className="py-2 px-4">{u.product}</td>
+                    <td className="py-2 px-4">${PRODUCT_PRICES[u.product] ? PRODUCT_PRICES[u.product].toLocaleString() : '-'}</td>
+                    <td className="py-2 px-4 space-x-2">
+                      <button
+                        onClick={() => handleChangePassword(u.id)}
+                        className="text-blue-600 hover:underline"
+                        disabled={actionLoading}
+                      >
+                        Change Password
+                      </button>
+                      <button
+                        onClick={() => handleDelete(u.id)}
+                        className="text-red-600 hover:underline"
+                        disabled={actionLoading}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-      </div>
-
-      {/* Top stats row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
-          <span className="text-lg font-semibold">Users:</span>
-          <span className="text-2xl font-bold">{users.length}</span>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
-          <span className="text-lg font-semibold">Total Revenue:</span>
-          <span className="text-2xl font-bold">${totalRevenue.toLocaleString()}</span>
-        </div>
-      </div>
-
-      {/* User list */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="border rounded px-3 py-2 w-full md:w-64"
-          />
-          {actionError && <div className="text-red-600 text-sm mt-2 md:mt-0">{actionError}</div>}
-        </div>
-        {loading ? (
-          <div className="text-center py-8">Loading users...</div>
-        ) : (
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr>
-                <th className="py-2 px-4">First Name</th>
-                <th className="py-2 px-4">Last Name</th>
-                <th className="py-2 px-4">Email</th>
-                <th className="py-2 px-4">Job Title</th>
-                <th className="py-2 px-4">Product</th>
-                <th className="py-2 px-4">Product Price Paid</th>
-                <th className="py-2 px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map(u => (
-                <tr key={u.id} className="border-t">
-                  <td className="py-2 px-4">{u.first_name || '-'}</td>
-                  <td className="py-2 px-4">{u.last_name || '-'}</td>
-                  <td className="py-2 px-4">{u.email || '-'}</td>
-                  <td className="py-2 px-4">{u.job_title || '-'}</td>
-                  <td className="py-2 px-4">{u.product}</td>
-                  <td className="py-2 px-4">${PRODUCT_PRICES[u.product] ? PRODUCT_PRICES[u.product].toLocaleString() : '-'}</td>
-                  <td className="py-2 px-4 space-x-2">
-                    <button
-                      onClick={() => handleChangePassword(u.id)}
-                      className="text-blue-600 hover:underline"
-                      disabled={actionLoading}
-                    >
-                      Change Password
-                    </button>
-                    <button
-                      onClick={() => handleDelete(u.id)}
-                      className="text-red-600 hover:underline"
-                      disabled={actionLoading}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      </main>
     </div>
   )
 }
