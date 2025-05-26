@@ -177,10 +177,10 @@ export default function DashboardPage() {
           <div className="relative" ref={settingsRef}>
             <button
               onClick={() => setSettingsOpen((open) => !open)}
-              className="flex items-center px-3 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none"
+              className="flex items-center px-3 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none text-lg font-medium"
               aria-label="Settings"
             >
-              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 2.25c.966 0 1.75.784 1.75 1.75v.5a7.5 7.5 0 0 1 2.25.938l.354-.354a1.75 1.75 0 1 1 2.475 2.475l-.354.354A7.5 7.5 0 0 1 19.5 11h.5a1.75 1.75 0 1 1 0 3.5h-.5a7.5 7.5 0 0 1-.938 2.25l.354.354a1.75 1.75 0 1 1-2.475 2.475l-.354-.354A7.5 7.5 0 0 1 13 19.5v.5a1.75 1.75 0 1 1-3.5 0v-.5a7.5 7.5 0 0 1-2.25-.938l-.354.354a1.75 1.75 0 1 1-2.475-2.475l.354-.354A7.5 7.5 0 0 1 4.5 13h-.5a1.75 1.75 0 1 1 0-3.5h.5a7.5 7.5 0 0 1 .938-2.25l-.354-.354a1.75 1.75 0 1 1 2.475-2.475l.354.354A7.5 7.5 0 0 1 11 4.5v-.5c0-.966.784-1.75 1.75-1.75z" /></svg>
+              Settings
             </button>
             {settingsOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-10">

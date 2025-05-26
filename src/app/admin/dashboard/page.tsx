@@ -17,6 +17,17 @@ export default function AdminDashboard() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
+  // Price map for each product/package
+  const PRODUCT_PRICES: Record<string, number> = {
+    'Basic Neuro Anatomy':99,
+    'Basic Neuro cases': 299,
+    'Advanced Neuro cases': 499,
+    // Add more as needed
+  }
+
+  // Calculate total revenue
+  const totalRevenue = users.reduce((sum, u) => sum + (PRODUCT_PRICES[u.product] || 0), 0)
+
   useEffect(() => {
     if (!user) return
     if (user.email !== ADMIN_EMAIL) {
@@ -103,59 +114,95 @@ export default function AdminDashboard() {
         <div className="relative">
           <button
             onClick={() => setSettingsOpen((open) => !open)}
-            className="flex items-center px-3 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none"
+            className="flex items-center px-3 py-2 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none text-lg font-medium"
             aria-label="Settings"
           >
-            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 2.25c.966 0 1.75.784 1.75 1.75v.5a7.5 7.5 0 0 1 2.25.938l.354-.354a1.75 1.75 0 1 1 2.475 2.475l-.354.354A7.5 7.5 0 0 1 19.5 11h.5a1.75 1.75 0 1 1 0 3.5h-.5a7.5 7.5 0 0 1-.938 2.25l.354.354a1.75 1.75 0 1 1-2.475 2.475l-.354-.354A7.5 7.5 0 0 1 13 19.5v.5a1.75 1.75 0 1 1-3.5 0v-.5a7.5 7.5 0 0 1-2.25-.938l-.354.354a1.75 1.75 0 1 1-2.475-2.475l.354-.354A7.5 7.5 0 0 1 4.5 13h-.5a1.75 1.75 0 1 1 0-3.5h.5a7.5 7.5 0 0 1 .938-2.25l-.354-.354a1.75 1.75 0 1 1 2.475-2.475l.354.354A7.5 7.5 0 0 1 11 4.5v-.5c0-.966.784-1.75 1.75-1.75z" /></svg>
+            Settings
           </button>
           {settingsOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-10">
-              <Link href="/auth">
-                <span className="block w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer">Sign In Page</span>
-              </Link>
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
               <Link href="/dashboard">
-                <span className="block w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer">User Dashboard</span>
+                <span className="block px-4 py-2 hover:bg-gray-100 cursor-pointer">User Dashboard</span>
               </Link>
+              <Link href="/admin/dashboard">
+                <span className="block px-4 py-2 hover:bg-gray-100 cursor-pointer">Admin Dashboard</span>
+              </Link>
+              <button
+                onClick={() => {
+                  router.push('/auth')
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
+              >
+                Sign Out
+              </button>
             </div>
           )}
         </div>
       </div>
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search users..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="border rounded px-3 py-2 w-full max-w-md"
-        />
+
+      {/* Top stats row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+          <span className="text-lg font-semibold">Users:</span>
+          <span className="text-2xl font-bold">{users.length}</span>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+          <span className="text-lg font-semibold">Total Revenue:</span>
+          <span className="text-2xl font-bold">${totalRevenue.toLocaleString()}</span>
+        </div>
       </div>
+
+      {/* User list */}
       <div className="bg-white rounded-lg shadow p-6">
-        {actionError && <div className="text-red-600 text-center mb-2">{actionError}</div>}
-        {loading || actionLoading ? (
+        <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="border rounded px-3 py-2 w-full md:w-64"
+          />
+          {actionError && <div className="text-red-600 text-sm mt-2 md:mt-0">{actionError}</div>}
+        </div>
+        {loading ? (
           <div className="text-center py-8">Loading users...</div>
         ) : (
-          <table className="w-full text-left">
+          <table className="w-full text-left text-sm">
             <thead>
               <tr>
-                <th className="py-2 px-4">Name</th>
-                <th className="py-2 px-4">Job Title</th>
+                <th className="py-2 px-4">First Name</th>
+                <th className="py-2 px-4">Last Name</th>
                 <th className="py-2 px-4">Email</th>
-                <th className="py-2 px-4">Product/Package</th>
+                <th className="py-2 px-4">Job Title</th>
+                <th className="py-2 px-4">Product</th>
+                <th className="py-2 px-4">Product Price Paid</th>
                 <th className="py-2 px-4">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.length === 0 ? (
-                <tr><td colSpan={5} className="text-center text-gray-500 py-4">No users found.</td></tr>
-              ) : filteredUsers.map(u => (
+              {filteredUsers.map(u => (
                 <tr key={u.id} className="border-t">
-                  <td className="py-2 px-4">{u.first_name} {u.last_name}</td>
-                  <td className="py-2 px-4">{u.job_title}</td>
-                  <td className="py-2 px-4">{u.email}</td>
+                  <td className="py-2 px-4">{u.first_name || '-'}</td>
+                  <td className="py-2 px-4">{u.last_name || '-'}</td>
+                  <td className="py-2 px-4">{u.email || '-'}</td>
+                  <td className="py-2 px-4">{u.job_title || '-'}</td>
                   <td className="py-2 px-4">{u.product}</td>
+                  <td className="py-2 px-4">${PRODUCT_PRICES[u.product] ? PRODUCT_PRICES[u.product].toLocaleString() : '-'}</td>
                   <td className="py-2 px-4 space-x-2">
-                    <button onClick={() => handleChangePassword(u.id)} className="text-blue-600 hover:underline">Change Password</button>
-                    <button onClick={() => handleDelete(u.id)} className="text-red-600 hover:underline">Delete</button>
+                    <button
+                      onClick={() => handleChangePassword(u.id)}
+                      className="text-blue-600 hover:underline"
+                      disabled={actionLoading}
+                    >
+                      Change Password
+                    </button>
+                    <button
+                      onClick={() => handleDelete(u.id)}
+                      className="text-red-600 hover:underline"
+                      disabled={actionLoading}
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -165,4 +212,4 @@ export default function AdminDashboard() {
       </div>
     </div>
   )
-} 
+}
