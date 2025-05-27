@@ -174,4 +174,57 @@ export async function getRecentQuizAttempts(userId: string, limit = 5) {
       timeLimit: attempt.time_limit,
     }
   })
+}
+
+// Fetch all questions from Supabase
+export async function fetchAllQuestionsFromSupabase() {
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+// Add a new question to Supabase
+export async function addQuestionToSupabase({
+  category,
+  difficulty,
+  question_text,
+  image_url,
+  answers,
+  correct_answer,
+  explanation,
+  explanation_image_url,
+  type = 'other',
+}: {
+  category: string;
+  difficulty: string;
+  question_text: string;
+  image_url?: string;
+  answers: string[];
+  correct_answer: string;
+  explanation: string;
+  explanation_image_url?: string;
+  type?: string;
+}) {
+  const { data, error } = await supabase
+    .from('questions')
+    .insert([
+      {
+        category,
+        difficulty,
+        type,
+        question_text,
+        image_url,
+        answers,
+        correct_answer,
+        explanation,
+        explanation_image_url,
+      },
+    ])
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 } 
