@@ -386,186 +386,211 @@ export default function AdminQbankPage() {
           </div>
         )}
         {addModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 overflow-y-auto">
-            <div className="bg-white rounded-lg shadow-lg w-1/2 relative my-8 max-h-[90vh] flex flex-col p-[20px]">
-              <button
-                className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-                onClick={handleCloseModal}
-                aria-label="Close"
-              >
-                ×
-              </button>
-              <h2 className="text-xl font-bold mb-4 mt-4">Add New Question</h2>
-              <form
-                onSubmit={handleSaveQuestion}
-                className="space-y-4 overflow-y-auto px-1 pb-4 flex-1"
-                style={{ maxHeight: '70vh' }}
-              >
-                {/* Category Dropdown */}
-                <div>
-                  <label className="block font-medium mb-1">Category</label>
-                  <select
-                    value={form.category}
-                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                    required
-                  >
-                    <option value="">Select category</option>
-                    {sectionOptions.map(opt => (
-                      <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1).replace(/_/g, ' ')}</option>
-                    ))}
-                  </select>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-xl shadow-2xl w-11/12 h-[90vh] flex flex-col p-0 text-sm">
+              {/* Sticky Header */}
+              <div className="sticky top-0 z-10 bg-white px-8 py-4 border-b flex items-center justify-between rounded-t-xl">
+                <div className="flex items-center gap-4 flex-1">
+                  <h2 className="text-2xl font-bold flex-shrink-0">{editQuestionId ? 'Edit Question' : 'Add New Question'}</h2>
                 </div>
-                {/* Difficulty Dropdown */}
-                <div>
-                  <label className="block font-medium mb-1">Difficulty</label>
-                  <select
-                    value={form.difficulty}
-                    onChange={e => setForm(f => ({ ...f, difficulty: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                    required
-                  >
-                    <option value="">Select difficulty</option>
-                    {difficultyOptions.map(opt => (
-                      <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
-                    ))}
-                  </select>
-                </div>
-                {/* Question Text */}
-                <div>
-                  <label className="block font-medium mb-1">Question</label>
-                  <textarea
-                    value={form.question_text}
-                    onChange={e => setForm(f => ({ ...f, question_text: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                    rows={2}
-                    required
-                  />
-                </div>
-                {/* Question Image Upload */}
-                <div>
-                  <label className="block font-medium mb-1">Question Image (optional)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => {
-                      const file = e.target.files?.[0] || null;
-                      setForm(f => ({ ...f, image_file: file }));
-                      if (file) {
-                        setQuestionImagePreview(URL.createObjectURL(file));
-                      } else {
-                        setQuestionImagePreview(null);
-                      }
-                    }}
-                  />
-                  {(questionImagePreview || editImageUrls.question) && (
-                    <div className="mt-2">
-                      <img
-                        src={questionImagePreview || editImageUrls.question}
-                        alt="Question"
-                        width={200}
-                        height={200}
-                        style={{ objectFit: 'contain', borderRadius: 8, border: '1px solid #eee' }}
-                        onError={e => { 
-                          console.log('Question image failed to load:', e.currentTarget.src);
-                          e.currentTarget.style.display = 'none'; 
-                        }}
-                        onLoad={() => {
-                          console.log('Question image loaded successfully');
-                          console.log('Rendering question image. Preview:', questionImagePreview, 'Edit URL:', editImageUrls.question);
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-                {/* Multiple Choice Answers */}
-                <div>
-                  <label className="block font-medium mb-1">Multiple Choice Answers</label>
-                  <div className="space-y-2">
-                    {form.options.map((ans, idx) => (
-                      <input
-                        key={idx}
-                        type="text"
-                        value={ans}
-                        onChange={e => setForm(f => {
-                          const options = [...f.options];
-                          options[idx] = e.target.value;
-                          return { ...f, options };
-                        })}
-                        className="w-full border rounded px-3 py-2"
-                        placeholder={`Answer ${idx + 1}`}
-                        required
-                      />
-                    ))}
-                  </div>
-                </div>
-                {/* Correct Answer */}
-                <div>
-                  <label className="block font-medium mb-1">Correct Answer</label>
-                  <input
-                    type="text"
-                    value={form.correct_answer}
-                    onChange={e => setForm(f => ({ ...f, correct_answer: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                    required
-                  />
-                </div>
-                {/* Explanation (optional) */}
-                <div>
-                  <label className="block font-medium mb-1">Answer Explanation (optional)</label>
-                  <textarea
-                    value={form.explanation}
-                    onChange={e => setForm(f => ({ ...f, explanation: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                    rows={2}
-                  />
-                </div>
-                {/* Explanation Image Upload (optional) */}
-                <div>
-                  <label className="block font-medium mb-1">Answer Image (optional)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => {
-                      const file = e.target.files?.[0] || null;
-                      setForm(f => ({ ...f, explanation_image_file: file }));
-                      if (file) {
-                        setExplanationImagePreview(URL.createObjectURL(file));
-                      } else {
-                        setExplanationImagePreview(null);
-                      }
-                    }}
-                  />
-                  {(explanationImagePreview || editImageUrls.explanation) && (
-                    <div className="mt-2">
-                      <img
-                        src={explanationImagePreview || editImageUrls.explanation}
-                        alt="Answer"
-                        width={200}
-                        height={200}
-                        style={{ objectFit: 'contain', borderRadius: 8, border: '1px solid #eee' }}
-                        onError={e => { 
-                          console.log('Explanation image failed to load:', e.currentTarget.src);
-                          e.currentTarget.style.display = 'none'; 
-                        }}
-                        onLoad={() => {
-                          console.log('Explanation image loaded successfully');
-                          console.log('Rendering explanation image. Preview:', explanationImagePreview, 'Edit URL:', editImageUrls.explanation);
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-                {error && <div className="text-red-600 text-sm">{error}</div>}
-                <div className="flex justify-end">
+                <div className="flex items-center gap-4">
                   <button
                     type="submit"
-                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-medium"
+                    form="question-modal-form"
+                    className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 font-medium text-lg shadow"
                     disabled={saving}
                   >
                     {saving ? 'Saving...' : 'Save question'}
                   </button>
+                  <button
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                    onClick={handleCloseModal}
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
                 </div>
+              </div>
+              {/* 3-Column Grid Content */}
+              <form
+                id="question-modal-form"
+                onSubmit={handleSaveQuestion}
+                className="flex-1 px-8 py-6 h-full"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr] gap-6 h-full divide-x" style={{height: 'calc(90vh - 80px - 80px)'}}>
+                  {/* Column 1 */}
+                  <div className="flex flex-col gap-4 pr-0 md:pr-6">
+                    <div>
+                      <label className="block font-medium mb-1">Category</label>
+                      <select
+                        value={form.category}
+                        onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Select category</option>
+                        {sectionOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1).replace(/_/g, ' ')}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1">Difficulty</label>
+                      <select
+                        value={form.difficulty}
+                        onChange={e => setForm(f => ({ ...f, difficulty: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Select difficulty</option>
+                        {difficultyOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1">Question</label>
+                      <textarea
+                        value={form.question_text}
+                        onChange={e => setForm(f => ({ ...f, question_text: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                        rows={3}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1">Multiple Choice Answers</label>
+                      <div className="space-y-2">
+                        {form.options.map((ans, idx) => (
+                          <input
+                            key={idx}
+                            type="text"
+                            value={ans}
+                            onChange={e => setForm(f => {
+                              const options = [...f.options];
+                              options[idx] = e.target.value;
+                              return { ...f, options };
+                            })}
+                            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                            placeholder={`Answer ${idx + 1}`}
+                            required
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Column 2 */}
+                  <div className="flex flex-col gap-4 px-0 md:px-6 h-full">
+                    <div>
+                      <label className="block font-medium mb-1">Correct Answer</label>
+                      <input
+                        type="text"
+                        value={form.correct_answer}
+                        onChange={e => setForm(f => ({ ...f, correct_answer: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col flex-1">
+                      <label className="block font-medium mb-1">Answer Explanation (optional)</label>
+                      <textarea
+                        value={form.explanation}
+                        onChange={e => setForm(f => ({ ...f, explanation: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 h-full min-h-[120px] resize-none"
+                        style={{flex: 1}}
+                      />
+                    </div>
+                  </div>
+                  {/* Column 3 */}
+                  <div className="flex flex-col gap-6 pl-0 md:pl-6">
+                    <div>
+                      <label className="block font-medium mb-1">Question Image (optional)</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setForm(f => ({ ...f, image_file: file }));
+                          if (file) {
+                            setQuestionImagePreview(URL.createObjectURL(file));
+                          } else {
+                            setQuestionImagePreview(null);
+                          }
+                        }}
+                      />
+                      {(questionImagePreview || editImageUrls.question) && (
+                        <div className="mt-2 relative">
+                          <img
+                            src={questionImagePreview || editImageUrls.question}
+                            alt="Question"
+                            width={200}
+                            height={200}
+                            className="object-contain rounded-lg border border-gray-200"
+                            style={{ maxWidth: 200, maxHeight: 200 }}
+                            onError={e => { e.currentTarget.style.display = 'none'; }}
+                          />
+                          {questionImagePreview && (
+                            <button
+                              type="button"
+                              className="absolute top-2 right-2 bg-white bg-opacity-80 rounded-full p-1 shadow hover:bg-red-100"
+                              onClick={() => {
+                                setForm(f => ({ ...f, image_file: null }));
+                                setQuestionImagePreview(null);
+                              }}
+                              aria-label="Remove question image"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1">Answer Image (optional)</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setForm(f => ({ ...f, explanation_image_file: file }));
+                          if (file) {
+                            setExplanationImagePreview(URL.createObjectURL(file));
+                          } else {
+                            setExplanationImagePreview(null);
+                          }
+                        }}
+                      />
+                      {(explanationImagePreview || editImageUrls.explanation) && (
+                        <div className="mt-2 relative">
+                          <img
+                            src={explanationImagePreview || editImageUrls.explanation}
+                            alt="Answer"
+                            width={200}
+                            height={200}
+                            className="object-contain rounded-lg border border-gray-200"
+                            style={{ maxWidth: 200, maxHeight: 200 }}
+                            onError={e => { e.currentTarget.style.display = 'none'; }}
+                          />
+                          {explanationImagePreview && (
+                            <button
+                              type="button"
+                              className="absolute top-2 right-2 bg-white bg-opacity-80 rounded-full p-1 shadow hover:bg-red-100"
+                              onClick={() => {
+                                setForm(f => ({ ...f, explanation_image_file: null }));
+                                setExplanationImagePreview(null);
+                              }}
+                              aria-label="Remove answer image"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {/* Error message */}
+                {error && <div className="text-red-600 text-sm mt-4">{error}</div>}
               </form>
             </div>
           </div>
