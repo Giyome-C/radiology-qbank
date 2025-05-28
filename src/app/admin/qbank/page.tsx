@@ -35,6 +35,11 @@ export default function AdminQbankPage() {
   const [error, setError] = useState<string | null>(null);
   const [editQuestionId, setEditQuestionId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editImageUrls, setEditImageUrls] = useState<{ question: string; explanation: string }>({ question: '', explanation: '' });
+  const [questionImagePreview, setQuestionImagePreview] = useState<string | null>(null);
+  const [explanationImagePreview, setExplanationImagePreview] = useState<string | null>(null);
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   // Fetch questions from Supabase on mount
   useEffect(() => {
@@ -71,6 +76,10 @@ export default function AdminQbankPage() {
 
   // Edit handler: open modal with question data
   function handleEditQuestion(q: any) {
+    console.log('Editing question:', q);
+    console.log('Question image URL:', q.image_url);
+    console.log('Question explanation image URL:', q.explanation_image_url);
+    
     setForm({
       category: q.category,
       difficulty: q.difficulty,
@@ -83,6 +92,18 @@ export default function AdminQbankPage() {
     });
     setEditQuestionId(q.id);
     setAddModalOpen(true);
+    
+    const questionImageUrl = q.image_url || '';
+    const explanationImageUrl = q.explanation_image_url || '';
+    
+    console.log('Setting editImageUrls to:', { question: questionImageUrl, explanation: explanationImageUrl });
+    
+    setEditImageUrls({
+      question: questionImageUrl,
+      explanation: explanationImageUrl,
+    });
+    setQuestionImagePreview(null);
+    setExplanationImagePreview(null);
   }
 
   // Duplicate handler: create a copy of the question
@@ -192,6 +213,8 @@ export default function AdminQbankPage() {
         explanation: '',
         explanation_image_file: null,
       });
+      setQuestionImagePreview(null);
+      setExplanationImagePreview(null);
       setLoading(true);
       const data = await fetchAllQuestionsFromSupabase();
       setQuestions(data || []);
@@ -202,10 +225,57 @@ export default function AdminQbankPage() {
     setSaving(false);
   }
 
+  // When closing the modal, clear previews
+  const handleCloseModal = () => {
+    setAddModalOpen(false);
+    setEditQuestionId(null);
+    setEditImageUrls({ question: '', explanation: '' });
+    setQuestionImagePreview(null);
+    setExplanationImagePreview(null);
+  };
+
+  // Bulk delete handler
+  async function handleBulkDelete() {
+    if (selectedQuestions.length === 0) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const { error: deleteError } = await supabase.from('questions').delete().in('id', selectedQuestions);
+      if (deleteError) throw deleteError;
+      setSelectedQuestions([]);
+      setSelectAll(false);
+      setLoading(true);
+      const data = await fetchAllQuestionsFromSupabase();
+      setQuestions(data || []);
+      setLoading(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete questions.');
+    }
+    setSaving(false);
+  }
+
+  // Handle select all
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedQuestions([]);
+      setSelectAll(false);
+    } else {
+      setSelectedQuestions(questions.map(q => q.id));
+      setSelectAll(true);
+    }
+  };
+
+  // Handle select one
+  const handleSelectOne = (id: string) => {
+    setSelectedQuestions(prev =>
+      prev.includes(id) ? prev.filter(qid => qid !== id) : [...prev, id]
+    );
+  };
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r flex flex-col py-8 px-4 min-h-screen">
+      <aside className="w-48 bg-white border-r flex flex-col py-8 px-4 min-h-screen">
         <div className="mb-8">
           <span className="text-xl font-bold">Admin Panel</span>
         </div>
@@ -233,12 +303,21 @@ export default function AdminQbankPage() {
       <main className="flex-1 bg-gray-50 px-8 py-8">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold">Question Bank</h1>
-          <button
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium"
-            onClick={() => setAddModalOpen(true)}
-          >
-            Add Question
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+              onClick={handleBulkDelete}
+              disabled={selectedQuestions.length === 0 || saving}
+            >
+              Delete Questions
+            </button>
+            <button
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium"
+              onClick={() => setAddModalOpen(true)}
+            >
+              Add Question
+            </button>
+          </div>
         </div>
         {/* Table of questions */}
         <div className="bg-white rounded-lg shadow p-6 mt-8">
@@ -248,26 +327,31 @@ export default function AdminQbankPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="py-3 px-4 font-semibold text-gray-700">Question</th>
-                  <th className="py-3 px-4 font-semibold text-gray-700">Section</th>
-                  <th className="py-3 px-4 font-semibold text-gray-700">Difficulty</th>
+                  <th className="py-3 px-2"></th>
+                  <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Question</th>
+                  <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Section</th>
+                  <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Difficulty</th>
                   <th className="py-3 px-4"></th>
                 </tr>
               </thead>
               <tbody>
                 {questions.map((q) => (
-                  <tr key={q.id} className="border-b hover:bg-gray-50 group">
-                    <td className="py-3 px-4 flex items-center gap-2">
-                      <span className="text-gray-600">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" /></svg>
-                      </span>
+                  <tr key={q.id} className="border-b hover:bg-gray-50 group align-middle">
+                    <td className="py-3 px-2 align-middle">
+                      <input
+                        type="checkbox"
+                        checked={selectedQuestions.includes(q.id)}
+                        onChange={() => handleSelectOne(q.id)}
+                      />
+                    </td>
+                    <td className="py-3 px-2 flex items-center gap-1 align-middle text-left capitalize">
                       {q.question_text}
                     </td>
-                    <td className="py-3 px-4">{q.category}</td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${q.difficulty === 'easy' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{q.difficulty || '-'}</span>
+                    <td className="py-3 px-2 align-middle text-left capitalize">{q.category}</td>
+                    <td className="py-3 px-2 align-middle text-left capitalize">
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${q.difficulty === 'easy' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{q.difficulty || '-'}</span>
                     </td>
-                    <td className="py-3 px-4 text-right relative">
+                    <td className="py-3 px-4 text-right relative align-middle">
                       <button
                         className={`p-2 rounded-full hover:bg-gray-100 ${dropdownOpen === q.id ? 'ring-2 ring-blue-500' : ''}`}
                         onClick={() => setDropdownOpen(dropdownOpen === q.id ? null : q.id)}
@@ -303,10 +387,10 @@ export default function AdminQbankPage() {
         )}
         {addModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 overflow-y-auto">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-lg relative my-8 max-h-[90vh] flex flex-col p-[20px]">
+            <div className="bg-white rounded-lg shadow-lg w-1/2 relative my-8 max-h-[90vh] flex flex-col p-[20px]">
               <button
                 className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-                onClick={() => { setAddModalOpen(false); setEditQuestionId(null); }}
+                onClick={handleCloseModal}
                 aria-label="Close"
               >
                 ×
@@ -364,8 +448,35 @@ export default function AdminQbankPage() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={e => setForm(f => ({ ...f, image_file: e.target.files?.[0] || null }))}
+                    onChange={e => {
+                      const file = e.target.files?.[0] || null;
+                      setForm(f => ({ ...f, image_file: file }));
+                      if (file) {
+                        setQuestionImagePreview(URL.createObjectURL(file));
+                      } else {
+                        setQuestionImagePreview(null);
+                      }
+                    }}
                   />
+                  {(questionImagePreview || editImageUrls.question) && (
+                    <div className="mt-2">
+                      <img
+                        src={questionImagePreview || editImageUrls.question}
+                        alt="Question"
+                        width={200}
+                        height={200}
+                        style={{ objectFit: 'contain', borderRadius: 8, border: '1px solid #eee' }}
+                        onError={e => { 
+                          console.log('Question image failed to load:', e.currentTarget.src);
+                          e.currentTarget.style.display = 'none'; 
+                        }}
+                        onLoad={() => {
+                          console.log('Question image loaded successfully');
+                          console.log('Rendering question image. Preview:', questionImagePreview, 'Edit URL:', editImageUrls.question);
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
                 {/* Multiple Choice Answers */}
                 <div>
@@ -415,8 +526,35 @@ export default function AdminQbankPage() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={e => setForm(f => ({ ...f, explanation_image_file: e.target.files?.[0] || null }))}
+                    onChange={e => {
+                      const file = e.target.files?.[0] || null;
+                      setForm(f => ({ ...f, explanation_image_file: file }));
+                      if (file) {
+                        setExplanationImagePreview(URL.createObjectURL(file));
+                      } else {
+                        setExplanationImagePreview(null);
+                      }
+                    }}
                   />
+                  {(explanationImagePreview || editImageUrls.explanation) && (
+                    <div className="mt-2">
+                      <img
+                        src={explanationImagePreview || editImageUrls.explanation}
+                        alt="Answer"
+                        width={200}
+                        height={200}
+                        style={{ objectFit: 'contain', borderRadius: 8, border: '1px solid #eee' }}
+                        onError={e => { 
+                          console.log('Explanation image failed to load:', e.currentTarget.src);
+                          e.currentTarget.style.display = 'none'; 
+                        }}
+                        onLoad={() => {
+                          console.log('Explanation image loaded successfully');
+                          console.log('Rendering explanation image. Preview:', explanationImagePreview, 'Edit URL:', editImageUrls.explanation);
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
                 {error && <div className="text-red-600 text-sm">{error}</div>}
                 <div className="flex justify-end">
