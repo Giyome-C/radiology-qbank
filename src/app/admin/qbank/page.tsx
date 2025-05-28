@@ -327,8 +327,7 @@ export default function AdminQbankPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="py-3 px-2"></th>
-                  <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Question</th>
+                  <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Correct Answer</th>
                   <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Section</th>
                   <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Difficulty</th>
                   <th className="py-3 px-4"></th>
@@ -337,15 +336,8 @@ export default function AdminQbankPage() {
               <tbody>
                 {questions.map((q) => (
                   <tr key={q.id} className="border-b hover:bg-gray-50 group align-middle">
-                    <td className="py-3 px-2 align-middle">
-                      <input
-                        type="checkbox"
-                        checked={selectedQuestions.includes(q.id)}
-                        onChange={() => handleSelectOne(q.id)}
-                      />
-                    </td>
                     <td className="py-3 px-2 flex items-center gap-1 align-middle text-left capitalize">
-                      {q.question_text}
+                      {q.correct_answer}
                     </td>
                     <td className="py-3 px-2 align-middle text-left capitalize">{q.category}</td>
                     <td className="py-3 px-2 align-middle text-left capitalize">
