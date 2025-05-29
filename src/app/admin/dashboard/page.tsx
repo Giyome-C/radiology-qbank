@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { fetchAllQuestionsFromSupabase } from '@/lib/supabase/database'
 
 const ADMIN_EMAIL = 'curaudeaug@gmail.com' // Change this to your admin email
 
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [questionCount, setQuestionCount] = useState<number>(0)
 
   // Price map for each product/package
   const PRODUCT_PRICES: Record<string, number> = {
@@ -35,6 +37,7 @@ export default function AdminDashboard() {
       return
     }
     fetchUsers()
+    fetchQuestionCount()
   }, [user])
 
   const fetchUsers = async () => {
@@ -51,6 +54,15 @@ export default function AdminDashboard() {
       setUsers([])
     }
     setLoading(false)
+  }
+
+  const fetchQuestionCount = async () => {
+    try {
+      const questions = await fetchAllQuestionsFromSupabase()
+      setQuestionCount(questions.length || 0)
+    } catch (err) {
+      setQuestionCount(0)
+    }
   }
 
   const handleDelete = async (userId: string) => {
@@ -171,10 +183,14 @@ export default function AdminDashboard() {
           </div>
         </div>
         {/* Top stats row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
             <span className="text-lg font-semibold">Users:</span>
             <span className="text-2xl font-bold">{users.length}</span>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+            <span className="text-lg font-semibold">Questions:</span>
+            <span className="text-2xl font-bold">{questionCount}</span>
           </div>
           <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
             <span className="text-lg font-semibold">Total Revenue:</span>
