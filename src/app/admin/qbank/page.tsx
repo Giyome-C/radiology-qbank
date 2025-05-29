@@ -40,6 +40,10 @@ export default function AdminQbankPage() {
   const [explanationImagePreview, setExplanationImagePreview] = useState<string | null>(null);
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredQuestions, setFilteredQuestions] = useState<any[]>([]);
+  const [sortBy, setSortBy] = useState<'category' | 'difficulty' | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Fetch questions from Supabase on mount
   useEffect(() => {
@@ -55,6 +59,56 @@ export default function AdminQbankPage() {
     }
     loadQuestions();
   }, []);
+
+  useEffect(() => {
+    setFilteredQuestions(questions);
+  }, [questions]);
+
+  // Sorting logic
+  useEffect(() => {
+    let sorted = [...filteredQuestions];
+    if (sortBy) {
+      sorted.sort((a, b) => {
+        let aVal = a[sortBy] || '';
+        let bVal = b[sortBy] || '';
+        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    setFilteredQuestions(sorted);
+  }, [sortBy, sortOrder]);
+
+  const handleSort = (column: 'category' | 'difficulty') => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+
+  const handleSearch = () => {
+    if (!searchTerm.trim()) {
+      setFilteredQuestions(questions);
+      return;
+    }
+    const lower = searchTerm.toLowerCase();
+    setFilteredQuestions(
+      questions.filter(q =>
+        (q.question_text && q.question_text.toLowerCase().includes(lower)) ||
+        (q.correct_answer && q.correct_answer.toLowerCase().includes(lower)) ||
+        (q.category && q.category.toLowerCase().includes(lower))
+      )
+    );
+  };
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setFilteredQuestions(questions);
+    setSortBy(null);
+    setSortOrder('asc');
+  };
 
   // Sidebar links (shared with admin dashboard)
   const sidebarLinks = [
@@ -234,6 +288,22 @@ export default function AdminQbankPage() {
     setExplanationImagePreview(null);
   };
 
+  // Bulk select logic
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedQuestions([]);
+      setSelectAll(false);
+    } else {
+      setSelectedQuestions(filteredQuestions.map(q => q.id));
+      setSelectAll(true);
+    }
+  };
+  const handleSelectOne = (id: string) => {
+    setSelectedQuestions(prev =>
+      prev.includes(id) ? prev.filter(qid => qid !== id) : [...prev, id]
+    );
+  };
+
   // Bulk delete handler
   async function handleBulkDelete() {
     if (selectedQuestions.length === 0) return;
@@ -253,24 +323,6 @@ export default function AdminQbankPage() {
     }
     setSaving(false);
   }
-
-  // Handle select all
-  const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedQuestions([]);
-      setSelectAll(false);
-    } else {
-      setSelectedQuestions(questions.map(q => q.id));
-      setSelectAll(true);
-    }
-  };
-
-  // Handle select one
-  const handleSelectOne = (id: string) => {
-    setSelectedQuestions(prev =>
-      prev.includes(id) ? prev.filter(qid => qid !== id) : [...prev, id]
-    );
-  };
 
   return (
     <div className="flex min-h-screen">
@@ -301,19 +353,62 @@ export default function AdminQbankPage() {
       </aside>
       {/* Main content */}
       <main className="flex-1 bg-gray-50 px-8 py-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8">
           <h1 className="text-3xl font-bold">Question Bank</h1>
-          <div className="flex gap-2">
+        </div>
+        {/* Search Bar and Actions */}
+        <div className="flex items-center justify-between gap-2 mb-4 w-full">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search by question, answer, or section..."
+              className="border rounded-lg px-3 py-2 w-64 text-sm"
+            />
             <button
-              className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+              className="bg-blue-500 text-white px-4 py-2 rounded text-xs font-medium hover:bg-blue-600"
+              onClick={handleSearch}
+              type="button"
+            >
+              Search
+            </button>
+            <button
+              className="bg-gray-200 text-gray-700 px-4 py-2 rounded text-xs font-medium hover:bg-gray-300"
+              onClick={handleReset}
+              type="button"
+            >
+              Reset
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              className="bg-red-500 text-white px-4 py-2 rounded text-xs font-medium hover:bg-red-600 disabled:opacity-50"
               onClick={handleBulkDelete}
               disabled={selectedQuestions.length === 0 || saving}
             >
               Delete Questions
             </button>
             <button
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium"
-              onClick={() => setAddModalOpen(true)}
+              className="bg-blue-500 text-white px-4 py-2 rounded text-xs font-medium hover:bg-blue-600"
+              onClick={() => {
+                setForm({
+                  category: '',
+                  difficulty: '',
+                  question_text: '',
+                  image_file: null,
+                  options: ['', '', '', ''],
+                  correct_answer: '',
+                  explanation: '',
+                  explanation_image_file: null,
+                });
+                setEditQuestionId(null);
+                setEditImageUrls({ question: '', explanation: '' });
+                setQuestionImagePreview(null);
+                setExplanationImagePreview(null);
+                setAddModalOpen(true);
+              }}
+              type="button"
             >
               Add Question
             </button>
@@ -324,26 +419,48 @@ export default function AdminQbankPage() {
           {loading ? (
             <div className="text-center py-8 text-gray-500">Loading questions...</div>
           ) : (
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left font-medium text-base">
               <thead>
                 <tr className="border-b">
-                  <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Correct Answer</th>
-                  <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Section</th>
-                  <th className="py-3 px-2 font-semibold text-gray-700 text-left capitalize">Difficulty</th>
-                  <th className="py-3 px-4"></th>
+                  <th className="py-2 px-2 align-middle">
+                    <input
+                      type="checkbox"
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      className="h-6 w-6 cursor-pointer"
+                    />
+                  </th>
+                  <th className="py-2 px-2 font-semibold text-gray-700 text-left capitalize align-middle">Correct Answer</th>
+                  <th className="py-2 px-2 font-semibold text-gray-700 text-left capitalize cursor-pointer select-none align-middle" onClick={() => handleSort('category')}>
+                    Section
+                    <span className="ml-1 text-xs align-middle">{sortBy === 'category' ? (sortOrder === 'asc' ? '▲' : '▼') : '▼'}</span>
+                  </th>
+                  <th className="py-2 px-2 font-semibold text-gray-700 text-left capitalize cursor-pointer select-none align-middle" onClick={() => handleSort('difficulty')}>
+                    Difficulty
+                    <span className="ml-1 text-xs align-middle">{sortBy === 'difficulty' ? (sortOrder === 'asc' ? '▲' : '▼') : '▼'}</span>
+                  </th>
+                  <th className="py-2 px-4 align-middle"></th>
                 </tr>
               </thead>
               <tbody>
-                {questions.map((q) => (
-                  <tr key={q.id} className="border-b hover:bg-gray-50 group align-middle">
-                    <td className="py-3 px-2 flex items-center gap-1 align-middle text-left capitalize">
+                {filteredQuestions.map((q) => (
+                  <tr key={q.id} className="border-b hover:bg-gray-50 group align-middle items-center">
+                    <td className="py-2 px-2 align-middle">
+                      <input
+                        type="checkbox"
+                        checked={selectedQuestions.includes(q.id)}
+                        onChange={() => handleSelectOne(q.id)}
+                        className="h-6 w-6 cursor-pointer"
+                      />
+                    </td>
+                    <td className="py-2 px-2 flex items-center gap-1 align-middle text-left capitalize">
                       {q.correct_answer}
                     </td>
-                    <td className="py-3 px-2 align-middle text-left capitalize">{q.category}</td>
-                    <td className="py-3 px-2 align-middle text-left capitalize">
+                    <td className="py-2 px-2 align-middle text-left capitalize">{q.category}</td>
+                    <td className="py-2 px-2 align-middle text-left capitalize">
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${q.difficulty === 'easy' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{q.difficulty || '-'}</span>
                     </td>
-                    <td className="py-3 px-4 text-right relative align-middle">
+                    <td className="py-2 px-4 text-right relative align-middle">
                       <button
                         className={`p-2 rounded-full hover:bg-gray-100 ${dropdownOpen === q.id ? 'ring-2 ring-blue-500' : ''}`}
                         onClick={() => setDropdownOpen(dropdownOpen === q.id ? null : q.id)}
