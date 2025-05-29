@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/AuthContext'
 import { getUserProgress, getRecentQuizAttempts, createQuizAttempt } from '@/lib/supabase/database'
 import type { UserProgress, QuestionCategory, QuestionDifficulty } from '@/types/database'
+import { supabase } from '@/lib/supabase/client'
 
 interface DashboardStats {
   totalQuestions: number
@@ -12,6 +13,32 @@ interface DashboardStats {
   accuracy: number
   byCategory: Record<string, { total: number; correct: number }>
   byDifficulty: Record<string, { total: number; correct: number }>
+}
+
+const CATEGORY_OPTIONS = ['brain', 'spine', 'head_and_neck', 'peds', 'physics'] as const
+const DIFFICULTY_OPTIONS = ['easy', 'advanced'] as const
+
+type Category = typeof CATEGORY_OPTIONS[number]
+type Difficulty = typeof DIFFICULTY_OPTIONS[number]
+
+type QuizMode = 'timed' | 'exam' | 'tutorial'
+
+type QuizSettings = {
+  numQuestions: number
+  mode: QuizMode
+  categories: Category[]
+  difficulty: Difficulty | ''
+  usage: 'unused' | 'all'
+  history: 'all' | 'incorrect'
+}
+
+const DEFAULT_SETTINGS: QuizSettings = {
+  numQuestions: 10,
+  mode: 'timed',
+  categories: [],
+  difficulty: '',
+  usage: 'all',
+  history: 'all',
 }
 
 export default function DashboardPage() {
@@ -27,16 +54,12 @@ export default function DashboardPage() {
   })
   const [recentQuizzes, setRecentQuizzes] = useState<any[]>([])
   const [showQuizModal, setShowQuizModal] = useState(false)
-  const [quizNumQuestions, setQuizNumQuestions] = useState(10)
-  const [quizIsTimed, setQuizIsTimed] = useState(false)
-  const [quizTimeLimit, setQuizTimeLimit] = useState(10)
-  const [quizCategory, setQuizCategory] = useState<QuestionCategory | ''>('')
-  const [quizDifficulty, setQuizDifficulty] = useState<QuestionDifficulty | ''>('')
+  const [quizSettings, setQuizSettings] = useState<QuizSettings>(DEFAULT_SETTINGS)
+  const [isSaving, setIsSaving] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [difficulties, setDifficulties] = useState<Difficulty[]>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
-
-  const quizCategories: QuestionCategory[] = ['brain', 'head_and_neck', 'spine', 'peds']
-  const quizDifficulties: QuestionDifficulty[] = ['easy', 'medium', 'hard']
 
   useEffect(() => {
     if (user) {
@@ -55,6 +78,11 @@ export default function DashboardPage() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
+  }, [])
+
+  useEffect(() => {
+    setCategories([...CATEGORY_OPTIONS])
+    setDifficulties([...DIFFICULTY_OPTIONS])
   }, [])
 
   const loadUserProgress = async () => {
@@ -113,36 +141,28 @@ export default function DashboardPage() {
     }
   }
 
-  const handleQuickStartQuiz = () => {
+  function handleOpenModal() {
     setShowQuizModal(true)
   }
 
-  const handleQuizModalClose = () => {
+  function handleCloseModal() {
     setShowQuizModal(false)
-    setQuizNumQuestions(10)
-    setQuizIsTimed(false)
-    setQuizTimeLimit(10)
-    setQuizCategory('')
-    setQuizDifficulty('')
+    setQuizSettings(DEFAULT_SETTINGS)
   }
 
-  const handleQuizModalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
-    try {
-      const quiz = await createQuizAttempt({
-        userId: user.id,
-        totalQuestions: quizNumQuestions,
-        isTimed: quizIsTimed,
-        timeLimit: quizIsTimed ? quizTimeLimit : undefined,
-        category: quizCategory || undefined,
-        difficulty: quizDifficulty || undefined,
-      })
-      setShowQuizModal(false)
-      router.push(`/quiz/${quiz.id}`)
-    } catch (error) {
-      alert('Failed to create quiz. Please try again.')
-    }
+  function handleChange<K extends keyof QuizSettings>(key: K, value: QuizSettings[K]) {
+    setQuizSettings(prev => ({ ...prev, [key]: value }))
+  }
+
+  function handleSaveSettings() {
+    setIsSaving(true)
+    localStorage.setItem('quizSettings', JSON.stringify(quizSettings))
+    setTimeout(() => setIsSaving(false), 500)
+  }
+
+  async function handleStartQuiz() {
+    // TODO: Implement quiz creation logic
+    setShowQuizModal(false)
   }
 
   const handleSignOut = async () => {
@@ -153,6 +173,15 @@ export default function DashboardPage() {
   const handleAdmin = () => {
     router.push('/admin/dashboard')
   }
+
+  useEffect(() => {
+    // If all categories are unchecked, default to 'All Categories'
+    if (quizSettings.categories.length === 0) return
+    // If all categories are selected, treat as 'All Categories'
+    if (quizSettings.categories.length === categories.length) {
+      setQuizSettings(prev => ({ ...prev, categories: [] }))
+    }
+  }, [quizSettings.categories, categories.length])
 
   if (loading) {
     return (
@@ -166,7 +195,15 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <button
+              className="bg-green-600 text-white px-6 py-2 rounded font-semibold shadow hover:bg-green-700 transition"
+              onClick={handleOpenModal}
+              aria-label="Start Quiz"
+            >
+              Start Quiz
+            </button>
+          </div>
           <div className="relative flex-1 flex justify-center">
             {user && (
               <span className="text-xl font-semibold text-gray-700">
@@ -201,98 +238,136 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Start Quiz Button */}
-        <div className="flex justify-end mb-4">
-          <button
-            onClick={handleQuickStartQuiz}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
-          >
-            Quick Start Quiz
-          </button>
-        </div>
-
-        {/* Quick Start Quiz Modal */}
+        {/* Quiz Modal */}
         {showQuizModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md relative">
+            <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg relative">
               <button
                 className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-                onClick={handleQuizModalClose}
+                onClick={handleCloseModal}
                 aria-label="Close"
               >
                 ×
               </button>
-              <h2 className="text-xl font-bold mb-4">Customize Your Quiz</h2>
-              <form onSubmit={handleQuizModalSubmit} className="space-y-4">
+              <h2 className="text-xl font-bold mb-4">Start Quiz</h2>
+              <form className="space-y-4 mt-4" onSubmit={e => e.preventDefault()}>
+                {/* Number of Questions */}
                 <div>
-                  <label className="block font-medium mb-1">Number of Questions</label>
+                  <label className="block text-sm font-medium mb-1">Number of Questions</label>
                   <input
                     type="number"
                     min={1}
-                    max={50}
-                    value={quizNumQuestions}
-                    onChange={e => setQuizNumQuestions(Number(e.target.value))}
-                    className="w-full border rounded px-3 py-2"
+                    max={100}
+                    value={quizSettings.numQuestions}
+                    onChange={e => handleChange('numQuestions', Number(e.target.value))}
+                    className="w-24 border rounded px-2 py-1"
                   />
                 </div>
+                {/* Mode */}
                 <div>
-                  <label className="block font-medium mb-1">Timed Quiz?</label>
-                  <input
-                    type="checkbox"
-                    checked={quizIsTimed}
-                    onChange={e => setQuizIsTimed(e.target.checked)}
-                    className="mr-2"
-                  />
-                  <span>{quizIsTimed ? 'Yes' : 'No'}</span>
-                </div>
-                {quizIsTimed && (
-                  <div>
-                    <label className="block font-medium mb-1">Time Limit (minutes)</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={120}
-                      value={quizTimeLimit}
-                      onChange={e => setQuizTimeLimit(Number(e.target.value))}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="block font-medium mb-1">Category</label>
+                  <label className="block text-sm font-medium mb-1">Quiz Mode</label>
                   <select
-                    value={quizCategory}
-                    onChange={e => setQuizCategory(e.target.value as QuestionCategory)}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-2 py-1"
+                    value={quizSettings.mode}
+                    onChange={e => handleChange('mode', e.target.value as QuizMode)}
                   >
-                    <option value="">All</option>
-                    {quizCategories.map((cat) => (
-                      <option key={cat} value={cat}>{cat.replace(/_/g, ' ')}</option>
-                    ))}
+                    <option value="timed">Timed Exam Mode (1 min/question, answers at end)</option>
+                    <option value="exam">Untimed Exam Mode (answers at end)</option>
+                    <option value="tutorial">Untimed Tutorial Mode (answers after each question)</option>
                   </select>
                 </div>
+                {/* Categories */}
                 <div>
-                  <label className="block font-medium mb-1">Difficulty</label>
+                  <label className="block text-sm font-medium mb-1">Categories</label>
+                  <div className="flex flex-col gap-1">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={quizSettings.categories.length === 0}
+                        onChange={() => handleChange('categories', [])}
+                      />
+                      All Categories
+                    </label>
+                    {categories.map(cat => (
+                      <label key={cat} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={quizSettings.categories.includes(cat)}
+                          onChange={() => {
+                            let newCategories: Category[]
+                            if (quizSettings.categories.includes(cat)) {
+                              newCategories = quizSettings.categories.filter(c => c !== cat)
+                            } else {
+                              newCategories = [...quizSettings.categories, cat]
+                            }
+                            // If any category is selected, 'All Categories' should be unchecked
+                            handleChange('categories', newCategories)
+                          }}
+                        />
+                        {cat.replace(/_/g, ' ')}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {/* Difficulty */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Difficulty</label>
                   <select
-                    value={quizDifficulty}
-                    onChange={e => setQuizDifficulty(e.target.value as QuestionDifficulty)}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-2 py-1"
+                    value={quizSettings.difficulty}
+                    onChange={e => handleChange('difficulty', e.target.value as Difficulty | '')}
                   >
-                    <option value="">All</option>
-                    {quizDifficulties.map((diff) => (
+                    <option value="">All Difficulties</option>
+                    {difficulties.map(diff => (
                       <option key={diff} value={diff}>{diff.charAt(0).toUpperCase() + diff.slice(1)}</option>
                     ))}
                   </select>
                 </div>
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                {/* Usage */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Question Usage</label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={quizSettings.usage}
+                    onChange={e => handleChange('usage', e.target.value as 'unused' | 'all')}
                   >
-                    Start Quiz
-                  </button>
+                    <option value="unused">Unused Only</option>
+                    <option value="all">Used and Unused</option>
+                  </select>
+                </div>
+                {/* History */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Question History</label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={quizSettings.history}
+                    onChange={e => handleChange('history', e.target.value as 'all' | 'incorrect')}
+                  >
+                    <option value="all">All Questions</option>
+                    <option value="incorrect">Only Previously Incorrect and Never Correct</option>
+                  </select>
                 </div>
               </form>
+              {/* Footer */}
+              <div className="flex items-center gap-2 mt-8">
+                <button
+                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300"
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  aria-label="Save Settings"
+                  type="button"
+                >
+                  Save Settings
+                </button>
+                <button
+                  className="bg-green-600 text-white px-6 py-2 rounded font-semibold shadow hover:bg-green-700 transition"
+                  onClick={handleStartQuiz}
+                  aria-label="Start Quiz"
+                  type="button"
+                >
+                  Start Quiz
+                </button>
+              </div>
             </div>
           </div>
         )}
